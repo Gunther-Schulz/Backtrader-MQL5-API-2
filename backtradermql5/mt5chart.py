@@ -32,17 +32,19 @@ class MTraderChart(bt.Indicator):
         _ST_LIVE = self.p.data_obj._ST_LIVE
 
         for obj in self.line_store:
-            date = self.p.data_obj.datetime.datetime()
-            value = obj["line"][0]
-            if date != obj["last_date"] and not math.isnan(value):
-                obj["values"].append(value)
-                # Push historical indicator values when all historical price data has been processed
-                if qsize <= 1 or state == _ST_LIVE:
-                    self.p.store.push_chart_data(
-                        self.p.chartId, obj["chartIndicatorId"], obj["bufferId"], obj["values"],
-                    )
-                    obj["values"] = []
-                obj["last_date"] = date
+            # Wait for first indicator calculation
+            if obj["line"].lencount > 0:
+                date = self.p.data_obj.datetime.datetime()
+                value = obj["line"][0]
+                if date != obj["last_date"] and not math.isnan(value):
+                    obj["values"].append(value)
+                    # Push historical indicator values when all historical price data has been processed
+                    if qsize <= 1 or state == _ST_LIVE:
+                        self.p.store.push_chart_data(
+                            self.p.chartId, obj["chartIndicatorId"], obj["bufferId"], obj["values"],
+                        )
+                        obj["values"] = []
+                    obj["last_date"] = date
 
     def addindicator(self, subwindow):
         if subwindow > self.subwindow_count:
@@ -67,7 +69,14 @@ class MTraderChart(bt.Indicator):
         style.update(**kwargs["style"])
         chartIndicatorId = kwargs["indicator"]
         self.line_store.append(
-            {"last_date": 0, "line": line, "chartIndicatorId": chartIndicatorId, "style": style, "values": [], "bufferId": self.indicator_buffers[chartIndicatorId],}
+            {
+                "last_date": 0,
+                "line": line,
+                "chartIndicatorId": chartIndicatorId,
+                "style": style,
+                "values": [],
+                "bufferId": self.indicator_buffers[chartIndicatorId],
+            }
         )
         self.p.store.chart_indicator_add_buffer(self.p.chartId, chartIndicatorId, style)
         self.indicator_buffers[chartIndicatorId] += 1
