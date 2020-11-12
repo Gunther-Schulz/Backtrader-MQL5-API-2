@@ -75,6 +75,11 @@ class MTraderData(with_metaclass(MetaMTraderData, DataBase)):
         ("reconnect", True),
         ("useask", False),  # use the ask price instead of the default
         ("addspread", False),  # add spread difference to candle price data
+        # # Some brokers (looking at you, markets.com) deliver historical data and live/historical bar
+        # # data with a different spread than live ticks.
+        # # Setting "correct_tick_history = True" attempts to automatically correct historical tick data based on
+        # # the differenece in spread
+        # ("correct_tick_history", False),  # auto-correct historical price data
     )
 
     _store = mt5store.MTraderStore
@@ -131,7 +136,13 @@ class MTraderData(with_metaclass(MetaMTraderData, DataBase)):
         date_end = num2date(self.todate) if self.todate < float("inf") else None
 
         self.qhist = self.o.price_data(
-            self.p.dataname, date_begin, date_end, self.p.timeframe, self.p.compression, self.p.include_last,
+            self.p.dataname,
+            date_begin,
+            date_end,
+            self.p.timeframe,
+            self.p.compression,
+            self.p.include_last,
+            # self.p.correct_tick_history,
         )
 
         self._state = self._ST_HISTORBACK
@@ -239,8 +250,9 @@ class MTraderData(with_metaclass(MetaMTraderData, DataBase)):
 
     def _load_tick(self, msg):
         time_stamp, _bid, _ask = msg
-        # convert unix timestamp to float for millisecond resolution
-        d_time = datetime.utcfromtimestamp(float(time_stamp) / 1000.0)
+        # Keep timezone of the MetaTRader Tradeserver and convert to date object
+        # Convert unix timestamp to float for millisecond resolution
+        d_time = datetime.fromtimestamp(float(time_stamp) / 1000.0)
 
         dt = date2num(d_time)
 
@@ -264,7 +276,8 @@ class MTraderData(with_metaclass(MetaMTraderData, DataBase)):
 
     def _load_candle(self, ohlcv):
         time_stamp, _open, _high, _low, _close, _volume, _spread = ohlcv
-        d_time = datetime.utcfromtimestamp(time_stamp)
+        # Keep timezone of the MetaTRader Tradeserver and convert to date object
+        d_time = datetime.fromtimestamp(time_stamp)
 
         dt = date2num(d_time)
 
