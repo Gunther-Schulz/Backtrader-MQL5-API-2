@@ -85,11 +85,13 @@ class MTraderAPI:
             self.sys_socket = context.socket(zmq.REQ)
             # set port timeout
             self.sys_socket.RCVTIMEO = sys_timeout * 1000
+            self.sys_socket.set_hwm(1000)
             self.sys_socket.connect("tcp://{}:{}".format(self.HOST, self.SYS_PORT))
 
             self.data_socket = context.socket(zmq.PULL)
             # set port timeout
             self.data_socket.RCVTIMEO = data_timeout * 1000
+            self.data_socket.set_hwm(1000)
             self.data_socket.connect("tcp://{}:{}".format(self.HOST, self.DATA_PORT))
 
             self.indicator_data_socket = context.socket(zmq.PULL)

@@ -11,7 +11,7 @@ class MTraderChart(bt.Indicator):
     plotinfo = dict(plotskip=True)
 
     # Experimental
-    params = dict(realtime=False)
+    params = dict(realtime=True)
 
     # Equates to constant EMPTY_VALUE in MQL5
     str_inf = "1.797693134862316e+308"
@@ -55,13 +55,16 @@ class MTraderChart(bt.Indicator):
                 if date != line["last_date"] and not math.isnan(value):
                     line["values"].append(round(value, 6))
                     line["from_date"] = date.timestamp()
+                    print(qsize, state)
+                    # non-realtime has problems with gaps
                     if qsize <= 1 or state == _ST_LIVE or self.p.realtime:
-                        if self.resampled and not (
-                            self.p.d._timeframe == self.p.timeframe and self.p.d._compression == self.p.compression
-                        ):
-                            if line["last_date"]:
-                                line["from_date"] = line["last_date"].timestamp()
-                        line["values"].reverse()
+                        print(line["values"])
+                        # if self.resampled and not (
+                        #     self.p.d._timeframe == self.p.timeframe and self.p.d._compression == self.p.compression
+                        # ):
+                        if line["last_date"]:
+                            line["from_date"] = line["last_date"].timestamp()
+                        # line["values"].reverse()
                         self.p.store.push_chart_data(
                             self.p.chart_id,
                             self.p.mt_chart_id,
