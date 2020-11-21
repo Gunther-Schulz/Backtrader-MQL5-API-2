@@ -614,7 +614,7 @@ class MTraderStore(with_metaclass(MetaSingleton, object)):
         if dtbegin:
             begin = int((dtbegin - self._DTEPOCH).total_seconds())
         if dtend:
-            end = int((dtbegin - self._DTEPOCH).total_seconds())
+            end = int((dtend - self._DTEPOCH).total_seconds())
 
         if self.debug:
             print("Fetching: {}, Timeframe: {}, Fromdate: {}".format(dataname, tf, dtbegin))
