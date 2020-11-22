@@ -6,6 +6,11 @@ from backtradermql5.mt5indicator import getMTraderIndicator
 from backtradermql5.mt5chart import MTraderChart, ChartIndicator
 from datetime import datetime, timedelta
 from regressionchannel3 import LinearRegression
+import backtrader.filters as btfilters
+
+# import backtrader.fillers as btfillers
+# TODO Create filter o shift one to the left
+# TODO should resampled be really determined automatically? It just check for DataClone, which could be another type
 
 
 class SmaCross(bt.SignalStrategy):
@@ -14,21 +19,21 @@ class SmaCross(bt.SignalStrategy):
         self.live_data = False
 
         # # Attach and retrieve values from the MT5 indicator "Examples/MACD"
-        self.mt5cma0 = getMTraderIndicator(
-            # MTraderStorestore instance
-            store,
-            # Data feed to run the indicator calculations on
-            self.datas[0],
-            # Set accessor(s) for the indicator output lines
-            ("cma",),
-            # MT5 inidicator name
-            indicator="Examples/Custom Moving Average",
-            # Indicator parameters.
-            #   Any omitted values will use the defaults as defind by the indicator.
-            #   The parameter "params" must exist. If you want to use only the indicator defaults,
-            #   pass an empty list: params=[],
-            params=[13, 0, "MODE_SMMA"],
-        )()
+        # self.mt5cma0 = getMTraderIndicator(
+        #     # MTraderStorestore instance
+        #     store,
+        #     # Data feed to run the indicator calculations on
+        #     self.datas[0],
+        #     # Set accessor(s) for the indicator output lines
+        #     ("cma",),
+        #     # MT5 inidicator name
+        #     indicator="Examples/Custom Moving Average",
+        #     # Indicator parameters.
+        #     #   Any omitted values will use the defaults as defind by the indicator.
+        #     #   The parameter "params" must exist. If you want to use only the indicator defaults,
+        #     #   pass an empty list: params=[],
+        #     params=[13, 0, "MODE_SMMA"],
+        # )()
 
         # Instantiating backtrader indicator Bollinger Bands and Moving Averages
         #   Important: This needs to come before instantiating a chart window
@@ -46,18 +51,18 @@ class SmaCross(bt.SignalStrategy):
         def addChart(chart, bb, sma, lr):
             # Instantiate new indicator and draw to the main window. The parameter idx=0 specifies wether to plot to the
             # main window (idx=0) or a subwindow (idx=1 for the first subwindow, idx=2 for the second etc.).
-            indi0 = ChartIndicator(idx=0, shortname="Bollinger Bands")
+            indi0 = ChartIndicator(idx=0, shortname="Various")
 
             # # Add line buffers
-            indi0.addline(
-                bb.top, style={"linelabel": "Top", "color": "clrBlue",},
-            )
-            indi0.addline(
-                bb.mid, style={"linelabel": "Middle", "color": "clrYellow",},
-            )
-            indi0.addline(
-                bb.bot, style={"linelabel": "Bottom", "color": "clrGreen",},
-            )
+            # indi0.addline(
+            #     bb.top, style={"linelabel": "Top", "color": "clrBlue",},
+            # )
+            # indi0.addline(
+            #     bb.mid, style={"linelabel": "Middle", "color": "clrYellow",},
+            # )
+            # indi0.addline(
+            #     bb.bot, style={"linelabel": "Bottom", "color": "clrGreen",},
+            # )
             indi0.addline(
                 lr.linear_regression,
                 style={"linelabel": "linear_regression", "color": "clrYellow", "linewidth": 3, "blankforming": True},
@@ -66,18 +71,21 @@ class SmaCross(bt.SignalStrategy):
             chart.addchartindicator(indi0)
 
             # Instantiate second indicator to draw to the first sub-window and add line buffers
-            indi1 = ChartIndicator(idx=1, shortname="Simple Moving Average")
-            indi1.addline(
-                sma.sma, style={"linelabel": "SMA", "color": "clrBlue", "linestyle": "STYLE_DASH", "linewidth": 2},
-            )
-            chart.addchartindicator(indi1)
+            # indi1 = ChartIndicator(idx=1, shortname="Simple Moving Average")
+            # indi1.addline(
+            #     sma.sma, style={"linelabel": "SMA", "color": "clrBlue", "linestyle": "STYLE_DASH", "linewidth": 2},
+            # )
+            # chart.addchartindicator(indi1)
 
         # Instantiate a new chart window and plot
-        chart0 = MTraderChart(self.datas[0])
-        addChart(chart0, self.bb0, self.sma0, self.lr0)
+        # chart0 = MTraderChart(self.datas[0], offset=False, realtime=True)
+        # addChart(chart0, self.bb0, self.sma0, self.lr0)
 
         # Instantiate a second chart window and plot
-        chart1 = MTraderChart(self.datas[1], realtime=False)
+        # If you receive the error: "array out of range in 'JsonAPIIndicator.mq5'" then the resampled bars are probably
+        # misalligne by one time frame unit in relation to MT5 bars. The parameter "offset=True" shifts all resampled
+        # bars one unit to the left.
+        chart1 = MTraderChart(self.datas[1], realtime=True, offset=True)
         addChart(chart1, self.bb1, self.sma1, self.lr1)
 
     def next(self):
@@ -101,7 +109,7 @@ class SmaCross(bt.SignalStrategy):
             print(
                 f"{data.datetime.datetime()} - {data._name} | Cash {cash} | O: {data.open[0]} H: {data.high[0]} L: {data.low[0]} C: {data.close[0]} V:{data.volume[0]}"
             )
-        print(f"MT5 indicator 'Examples/Custom Moving Average': {self.mt5cma0.cma[0]}")  # " {self.mt5macd.macd[0]}")
+        # print(f"MT5 indicator 'Examples/Custom Moving Average': {self.mt5cma0.cma[0]}")  # " {self.mt5macd.macd[0]}")
         print("")
 
     def notify_data(self, data, status, *args, **kwargs):
@@ -120,7 +128,7 @@ class SmaCross(bt.SignalStrategy):
 # If Metatrader runs at different address
 host = "192.168.56.124"
 
-store = MTraderStore(host=host, debug=False, datatimeout=100)
+store = MTraderStore(host=host, debug=False, datatimeout=10000)
 
 cerebro = bt.Cerebro()
 
@@ -145,12 +153,16 @@ def resample(
 # In backtesting mode (historical=True), the plots will be dsiplayed once all indicators have finished their calculations
 # In live mode (defualt, historical=False), the plots will be displayed on the next tick/bar
 
-start_date = datetime.now() - timedelta(hours=20)
+start_date = datetime.now() - timedelta(hours=30)
 data = store.getdata(
     dataname="EURUSD",
     name="TICKS",
     timeframe=bt.TimeFrame.Ticks,
-    fromdate=start_date,
+    # fromdate=datetime(2020, 11, 20, 23, 50),
+    # fromdate=datetime(2020, 11, 20, 23, 58, 50),  # M20,M30
+    fromdate=datetime(2020, 11, 20, 20, 50),
+    todate=datetime(2020, 11, 20, 23, 50),
+    # todate=datetime.now(),
     compression=1,
     # useask=True, # For Tick data only: Ask price instead if the default bid price
     # addspread=True, # For Candle data only: Add the spread value
@@ -158,25 +170,80 @@ data = store.getdata(
     # More information at: https://www.backtrader.com/docu/timemgmt/
     tz=pytz.timezone("UTC"),
     historical=True,
+    # filters=[btfilters.SessionFiller],
 )
-resample(data, compression=1)
 
-start_date = datetime.now() - timedelta(hours=60)
-data = store.getdata(
-    dataname="EURGBP",
-    name="BARS",
-    timeframe=bt.TimeFrame.Minutes,
-    fromdate=start_date,
-    compression=1,
-    # useask=True, # For Tick data only: Ask price instead if the default bid price
-    # addspread=True, # For Candle data only: Add the spread value
-    tz=pytz.timezone("UTC"),
-    historical=True,
-)
-# When resampling bar data, use boundoff=1
-# https://www.backtrader.com/docu/data-resampling/data-resampling/
-resample(data, compression=5, boundoff=1)
 
+# Historical True
+# cerebro.resampledata
+# Realtime True
+# Tick -> 1-Minute: offset=True
+# 1-Minute -> 1-Minute: offset=False
+# 1-Minute -> 1-Minute: offset=False, boundoff=1
+# 1-Minute -> 5-Minutes: offset=True, boundoff=1
+
+# Historical True
+# NOT resampled
+# Realtime True
+# any bar: offset=False
+
+cerebro.adddata(data)
+# resample(data, compression=1, boundoff=0)
+cerebro.resampledata(data, name=f"RESAMPLED{1}", timeframe=bt.TimeFrame.Minutes, compression=1)
+# data.resample(timeframe=bt.TimeFrame.Seconds, compression=1)
+# data.addfilter(btfilters.SessionFiller)
+
+# cerebro.adddata(data)
+# cerebro.resampledata(
+#     data,
+#     name=f"RESAMPLED{1}",
+#     timeframe=bt.TimeFrame.Minutes,
+#     compression=1,
+#     # bar2edge=False,
+#     # boundoff=2,
+#     # adjbartime=False,
+#     # rightedge=False,
+# )
+
+# data.resample(timeframe=bt.TimeFrame.Minutes, compression=1)
+# cerebro.adddata(data)
+
+# data.addfilter(btfilters.SessionFiller)
+# data_filled = data.clone(timeframe=bt.TimeFrame.Minutes, compression=1)
+
+# cerebro.adddata(data)
+# cerebro.adddata(data_filled)
+# start_date = datetime.now() - timedelta(hours=60)
+# data = store.getdata(
+#     dataname="EURGBP",
+#     name="BARS",
+#     timeframe=bt.TimeFrame.Minutes,
+#     fromdate=start_date,
+#     compression=1,
+#     # useask=True, # For Tick data only: Ask price instead if the default bid price
+#     # addspread=True, # For Candle data only: Add the spread value
+#     tz=pytz.timezone("UTC"),
+#     historical=True,
+# )
+# # When resampling bar data, use boundoff=1
+# # https://www.backtrader.com/docu/data-resampling/data-resampling/
+# resample(data, compression=5, boundoff=1)
+
+# data1 = store.getdata(
+#     dataname="EURUSD",
+#     name="TICKS",
+#     timeframe=bt.TimeFrame.Ticks,
+#     fromdate=datetime(2020, 11, 20, 21, 20),
+#     # todate=datetime(2020, 11, 20, 20, 50),
+#     compression=1,
+#     # useask=True, # For Tick data only: Ask price instead if the default bid price
+#     # addspread=True, # For Candle data only: Add the spread value
+#     # Specify the timezone of the trade server that MetaTrader connects to.
+#     # More information at: https://www.backtrader.com/docu/timemgmt/
+#     tz=pytz.timezone("UTC"),
+#     historical=True,
+# )
+# cerebro.adddata(data1)
 
 cerebro.run(stdstats=False)
 
