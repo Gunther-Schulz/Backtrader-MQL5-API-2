@@ -3,6 +3,43 @@ import math
 import uuid
 
 
+class ChartIndicator:
+    """
+    Chart indicator class
+    """
+
+    def __init__(self, idx, shortname):
+        self.sub_window_idx = idx
+        self.shortname = shortname
+        self.id = None
+        self.indicator_line_count = -1
+        self.line_store = []
+
+    def addline(self, line, *args, **kwargs):
+        style = {
+            "linelabel": "Value",
+            "color": "clrYellow",
+            "linetype": "DRAW_LINE",
+            "linestyle": "STYLE_SOLID",
+            "linewidth": 1,
+            "blankforming": True,
+        }
+        style.update(**kwargs["style"])
+
+        self.indicator_line_count += 1
+
+        self.line_store.append(
+            {
+                "last_date": None,
+                "from_date": None,
+                "line": line,
+                "style": style,
+                "values": [],
+                "buffer_id": self.indicator_line_count,
+            }
+        )
+
+
 class MTraderChart(bt.Indicator):
 
     # Inherited Indicator class requires at least one line
@@ -76,7 +113,7 @@ class MTraderChart(bt.Indicator):
                         line["from_date"] = None
                     line["last_date"] = date
 
-    def addchartindicator(self, indicator):
+    def addchartindicator(self, indicator: ChartIndicator):
         """
         Adds an indicator instance to a chart (sub)window in MT5.
         """
@@ -90,40 +127,3 @@ class MTraderChart(bt.Indicator):
         for line in indicator.line_store:
             self.p.store.chart_indicator_add_line(self.p.chart_id, indicator.id, line["style"])
         self.indicators.append(indicator)
-
-
-class ChartIndicator:
-    """
-    Chart indicator class
-    """
-
-    def __init__(self, idx, shortname):
-        self.sub_window_idx = idx
-        self.shortname = shortname
-        self.id = None
-        self.indicator_line_count = -1
-        self.line_store = []
-
-    def addline(self, line, *args, **kwargs):
-        style = {
-            "linelabel": "Value",
-            "color": "clrYellow",
-            "linetype": "DRAW_LINE",
-            "linestyle": "STYLE_SOLID",
-            "linewidth": 1,
-            "blankforming": True,
-        }
-        style.update(**kwargs["style"])
-
-        self.indicator_line_count += 1
-
-        self.line_store.append(
-            {
-                "last_date": None,
-                "from_date": None,
-                "line": line,
-                "style": style,
-                "values": [],
-                "buffer_id": self.indicator_line_count,
-            }
-        )
